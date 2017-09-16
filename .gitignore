@@ -1,0 +1,61 @@
+
+
+# User-specific stuff:
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/dictionaries
+
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.xml
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+
+.idea/**/gradle.xml
+.idea/**/libraries
+
+cmake-build-debug/
+
+.idea/**/mongoSettings.xml
+
+*.iws
+
+# IntelliJ
+/out/
+
+.idea_modules/
+
+atlassian-ide-plugin.xml
+
+.idea/replstate.xml
+
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# *.ipr
+
+# Sonarlint plugin
+.idea/sonarlint
+
+### Gradle ###
+.gradle
+**/build/
+/gradle
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
+# gradle/wrapper/gradle-wrapper.properties
+
+# End of https://www.gitignore.io/api/gradle,intellij
