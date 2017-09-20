@@ -1,10 +1,12 @@
+CREATE SEQUENCE fx_sequence;
+
 create table fx_users (
   name_ VARCHAR(255) PRIMARY KEY ,
   firstname VARCHAR(255),
   lastname VARCHAR(255)
 )
 
-create table fx_results (
+create table fx_forecasts (
   id_ INTEGER PRIMARY KEY,
   user_ VARCHAR(255),
   league_ VARCHAR(255),

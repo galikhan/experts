@@ -8,19 +8,18 @@ import org.telegram.telegrambots.TelegramBotsApi;
  */
 public class App {
     public static void main(String[] args) {
+
         Logger log = LoggerFactory.getLogger(App.class);
-        System.out.println("hello bot");
         log.info("main started");
         ApiContextInitializer.init();
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi();
 
         try {
-            telegramBotsApi.registerBot(new Expert());
-            System.out.println("registered bot");
+            telegramBotsApi.registerBot(new BotService());
+            log.info("bot registered");
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("after");
     }
 
     public String getGreeting() {

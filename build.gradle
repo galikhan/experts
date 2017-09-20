@@ -19,3 +19,15 @@ dependencies {
 // Define the main class for the application
 mainClassName = 'App'
 
+
+task fatJar(type: Jar) {
+
+    manifest {
+        attributes(
+                'Main-Class': 'App'
+        )
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}

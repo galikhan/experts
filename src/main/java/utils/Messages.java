@@ -1,3 +1,5 @@
+package utils;
+
 /**
  * Created by gali on 9/12/17.
  */
@@ -14,4 +16,10 @@ public class Messages {
             "experts_top - Список экспертов\n";
 
 
+    public static String SUCCESS = "Успешно создан";
+    public static String FAILURE = "Нужно добавить параметр";
+    public static String ERROR = "Произошла ошибка";
+    public static String UNIQUE = "Такое наименование уже есть";
+    public static String NO_SUCH_LEAGUE = "Такой лиги не существует" ;
+    public static String CANT_UPDATE = "У вас нет прав на обновление" ;
 }
