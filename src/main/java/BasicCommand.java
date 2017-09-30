@@ -1,4 +1,5 @@
 import com.google.gson.JsonObject;
+import dao.LeagueDataUtils;
 import dao.MatchDataUtils;
 import dto.ExpertDto;
 import dto.ForecastDto;
@@ -94,47 +95,9 @@ public class BasicCommand {
         return null;
     }
 
-    public String leagueList(Connection connection, long chatId, String text, String username) {
-
-        log.info("chat id {}", chatId);
-        List<LeagueDto> list = new ArrayList<>();
-        StringTokenizer tokenizer = new StringTokenizer(text, " ");
-
-        log.info("token count {}", tokenizer.countTokens());
-        String result = null;
-        if (tokenizer.countTokens() > 1) {
-
-            String request = tokenizer.nextToken();//command
-            String creator = tokenizer.nextToken();
-            try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where creator_ = ? and group_chat_  =  true order by create_date_ desc limit 5")) {
-                ps.setString(1, creator);
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    list.add(new LeagueDto(rs));
-                }
-            } catch (Exception e) {
-                log.error("error", e);
-            }
-
-            Conversation conversation = new Conversation();
-            result = LeagueDto.fromLeagueList(list);
-            if (list.isEmpty() == false) {
-                JsonObject json = LeagueDto.fromLeagueListToJson(list);
-                conversation.startNewConversation(connection, username, request, json.toString(), chatId, Messages.C_LEAGUES);
-            }
-
-        } else {
-            try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where chat_id_ = ? order by create_date_ desc limit 5")) {
-                ps.setLong(1, chatId);
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    list.add(new LeagueDto(rs));
-                }
-            } catch (Exception e) {
-                log.error("error", e);
-            }
-            result = LeagueDto.fromLeagueList(list);
-        }
+    public String leagues(Connection connection, long chatId, String text, String username) {
+        List<LeagueDto> list = LeagueDataUtils.getByChatId(connection, chatId);
+        String result = LeagueDto.fromLeagueList("", list);
         return result;
     }
 
@@ -389,27 +352,53 @@ public class BasicCommand {
         return firstWins;
     }
 
-    public String expertsTop(Connection connection, long chatId, String text, String username) {
+    public String leaguesFrom(Connection connection, long chatId, String text, String username) {
+
         StringTokenizer tokenizer = new StringTokenizer(text, " ");
-        tokenizer.nextToken();
+        String request = tokenizer.nextToken();//command
+        String creatorUsername = tokenizer.nextToken();//user creator of league
 
-        if (tokenizer.countTokens() > 0) {
-            //result league1 1.0-1
-            String league = tokenizer.nextToken();
+        Conversation conversation = new Conversation();
 
-            List<ExpertDto> list = new ArrayList<>();
-            try (PreparedStatement ps = connection.prepareStatement("select * from fx_experts where league_ = ? order by total_ desc")) {
-//                ps.setLong(1, league);
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    list.add(new ExpertDto(rs));
-                }
-            } catch (Exception e) {
-                log.error("error", e);
-            }
-            return ExpertDto.fromExpertsList(list);
+        List<LeagueDto> list = LeagueDataUtils.getByUsernameFromGroupChat(connection, creatorUsername);
+        if (list.isEmpty() == false) {
+            JsonObject json = LeagueDto.fromLeagueListToJson(list);
+            conversation.startNewConversation(connection, username, request, json.toString(), chatId, Messages.C_LEAGUES);
+            return LeagueDto.fromLeagueList("/" , list);
         }
-        return Messages.FAILURE;
+        return Messages.NO_LEAGUES_FOR_THIS_USER;
     }
 
+
+    //show latest league top table
+    public String table(Connection connection, long chatId, String text, String username) {
+//        StringTokenizer tokenizer = new StringTokenizer(text, " ");
+//        tokenizer.nextToken();
+//
+//        if (tokenizer.countTokens() > 0) {
+//            //result league1 1.0-1
+//            String league = tokenizer.nextToken();
+//            LeagueDto leagueDto = LeagueDataUtils.findByName(connection, league, chatId);
+//
+//            List<ExpertDto> list = new ArrayList<>();
+//            try (PreparedStatement ps = connection.prepareStatement("select * from fx_experts where league_ = ? order by total_ desc")) {
+//                ps.setLong(1, league);
+//                ResultSet rs = ps.executeQuery();
+//                while (rs.next()) {
+//                    list.add(new ExpertDto(rs));
+//                }
+//            } catch (Exception e) {
+//                log.error("error", e);
+//            }
+//            return ExpertDto.fromExpertsList(list);
+//        }
+//        return Messages.FAILURE;
+
+        LeagueDto leagueDto = LeagueDataUtils.getLatestLeague(connection, chatId);
+        return null;
+    }
+
+    public String tableAll(Connection connection, long chatId, String text, String username) {
+        return null;
+    }
 }

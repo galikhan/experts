@@ -42,7 +42,7 @@ public class LeagueDto extends BaseDto{
     }
 
 
-    public static String fromLeagueList(List<LeagueDto> list) {
+    public static String fromLeagueList(String prefix, List<LeagueDto> list) {
 
         if (list.isEmpty()) {
             return Messages.NO_LEAGUES_FOR_THIS_CHAT;
@@ -50,7 +50,7 @@ public class LeagueDto extends BaseDto{
             StringBuilder sb = new StringBuilder();
             int counter = 1;
             for (LeagueDto l : list) {
-                sb.append("/"+counter + ". " + l.name + (l.desc==null? "" : " (" + l.desc + ")") + "\n");
+                sb.append(prefix+counter + ". " + l.name + (l.desc==null? "" : " (" + l.desc + ")") + "\n");
                 counter++;
             }
             return sb.toString();

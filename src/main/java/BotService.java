@@ -51,9 +51,13 @@ public class BotService extends TelegramLongPollingBot {
 
                 result = basicCommand.newLeague(connection, chatId, text, username, chat);
 
-            } else if (text.startsWith(Messages.LEAGUE_LIST)) {
+            } else if (text.startsWith(Messages.LEAGUE)) {
 
-                result = basicCommand.leagueList(connection, chatId, text, username);
+                result = basicCommand.leagues(connection, chatId, text, username);
+
+            } else if (text.startsWith(Messages.LEAGUES_FROM)) {
+
+                result = basicCommand.leaguesFrom(connection, chatId, text, username);
 
             } else if(text.startsWith(Messages.ADD_MATCHES)){
 
@@ -63,17 +67,17 @@ public class BotService extends TelegramLongPollingBot {
 
                 result = basicCommand.leagueMatches(connection, chatId, text, username, null);
 
-            } else if(text.startsWith(Messages.FORECAST)){
-
-                result = basicCommand.forecast(connection, chatId, text, username);
-
             } else if(text.startsWith(Messages.RESULT)){
 
                 result = basicCommand.result(connection, chatId, text, username);
 
-            } else if(text.startsWith(Messages.EXPERTS_TOP)){
+            } else if(text.startsWith(Messages.TABLE)){
 
-                result = basicCommand.expertsTop(connection, chatId, text, username);
+                result = basicCommand.table(connection, chatId, text, username);
+
+            } else if(text.startsWith(Messages.TABLE_ALL)){
+
+                result = basicCommand.tableAll(connection, chatId, text, username);
 
             } else {
 

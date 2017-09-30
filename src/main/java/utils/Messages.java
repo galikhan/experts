@@ -18,15 +18,18 @@ public class Messages {
     public static String NO_LEAGUES_FOR_THIS_CHAT = "В чате нет лиг";
     public static String NO_MATCHES_EXIST = "Матчей в лиге нет";
     public static String NO_SUCH_COMMAND = "Нет такой команды";
+    public static String NO_LEAGUES_FOR_THIS_USER = "У пользователя нет лиг";
 
 
     public static String NEW_LEAGUE = "/new_league";
-    public static String LEAGUE_LIST = "/leagues";
+    public static String LEAGUE = "/leagues";
     public static String LEAGUE_MATCHES = "/matches";
     public static String ADD_MATCHES = "/add_matches";
-    public static String FORECAST = "/forecast";
     public static String RESULT = "/result";
     public static String EXPERTS_TOP = "/experts_top";
+    public static String LEAGUES_FROM = "/leaguesfrom";
+    public static String TABLE = "/table";
+    public static String TABLE_ALL = "/table_all";
 
     public static String SLASH_HELP = "/help";
 
@@ -38,8 +41,6 @@ public class Messages {
 
     public static String MENU_SEND_FORECAST = "Отправить прогноз";
     public static String MENU_VIEW_FORECAST = "Просмотреть прогноз";
-//    public static String MENU_SEND_FORECAST = "MATCHES";
-//    public static String MENU_SEND_FORECAST = "FORECAST";
 
 
 }

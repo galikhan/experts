@@ -2,13 +2,11 @@ Cписок комманд
 
 new_league - Новая лига. Пример : (new_league <league1>)
 leagues - Список последних 5 лиг.
+leaguefrom - Показать лиги от пользователя .
 matches - Список всех матчей
 add_matches - Добавить матчи к лиге. Пример : ( add_matches <league1> Арсенал-Ливерпуль Челси-МЮ ...)
 result - Отправляем результат матча. Пример : (result <league1> 1.0-1)
-table - Таблица. Пример : (table <league1>)
+table - Таблица.
 table_all - Общая таблица
 
---old
-forecast - Эксперты отправляют результаты матчей. Пример : (forecast league1 1.0-1 2.2-1 ...)
-view_forecast - Показать прогнозы
 
