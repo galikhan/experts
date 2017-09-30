@@ -1,20 +1,15 @@
 import connector.Connector;
-import dto.LeagueDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
+import org.telegram.telegrambots.api.objects.Chat;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
-import utils.CommandUtils;
 import utils.Messages;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.StringTokenizer;
 
 /**
@@ -28,17 +23,19 @@ public class BotService extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-        log.info("onUpdateReceived called");
+        log.info("onUpdateReceived called chat title {}");
         SendMessage message = new SendMessage();
 
-        Expert expert = new Expert();
+        BasicCommand basicCommand = new BasicCommand();
+        Conversation conversation = new Conversation();
 
         if (update.hasMessage()) {
-
             long chatId = update.getMessage().getChatId();
+            Chat chat = update.getMessage().getChat();
             String text = update.getMessage().getText();
             String username = update.getMessage().getFrom().getUserName();
             message.setChatId(chatId);
+
 
             StringTokenizer tokenizer;
 
@@ -50,38 +47,42 @@ public class BotService extends TelegramLongPollingBot {
             }
 
             String result = null;
-            if (text.startsWith(CommandUtils.NEW_LEAGUE)) {
+            if (text.startsWith(Messages.NEW_LEAGUE)) {
 
-                result = expert.newLeague(connection, chatId, text, username);
+                result = basicCommand.newLeague(connection, chatId, text, username, chat);
 
-            } else if (text.startsWith(CommandUtils.LEAGUE_LIST)) {
+            } else if (text.startsWith(Messages.LEAGUE_LIST)) {
 
-                result = expert.leagueList(connection, chatId, text, username);
+                result = basicCommand.leagueList(connection, chatId, text, username);
 
-            } else if(text.startsWith(CommandUtils.ADD_MATCHES)){
+            } else if(text.startsWith(Messages.ADD_MATCHES)){
 
-                result = expert.addMatches(connection, chatId, text, username);
+                result = basicCommand.addMatches(connection, chatId, text, username);
 
-            } else if(text.startsWith(CommandUtils.LEAGUE_MATCHES)){
+            } else if(text.startsWith(Messages.LEAGUE_MATCHES)){
 
-                result = expert.leagueMatches(connection, chatId, text, username);
+                result = basicCommand.leagueMatches(connection, chatId, text, username, null);
 
-            } else if(text.startsWith(CommandUtils.FORECAST)){
+            } else if(text.startsWith(Messages.FORECAST)){
 
-                result = expert.forecast(connection, chatId, text, username);
+                result = basicCommand.forecast(connection, chatId, text, username);
 
-            } else if(text.startsWith(CommandUtils.RESULT)){
+            } else if(text.startsWith(Messages.RESULT)){
 
-                result = expert.result(connection, chatId, text, username);
+                result = basicCommand.result(connection, chatId, text, username);
 
-            } else if(text.startsWith(CommandUtils.EXPERTS_TOP)){
+            } else if(text.startsWith(Messages.EXPERTS_TOP)){
 
-                result = expert.expertsTop(connection, chatId, text, username);
+                result = basicCommand.expertsTop(connection, chatId, text, username);
 
             } else {
 
-                result = "Нет такой команды";
-
+                if(text.startsWith("/")) {
+                    String command = text.substring(1);
+                    result = conversation.digest(connection, chatId, text, username, command);
+                } else {
+                    result = conversation.digestSimpleText(connection, chatId, text, username);
+                }
             }
 
             log.info("chatId {}, text {}", chatId, text);

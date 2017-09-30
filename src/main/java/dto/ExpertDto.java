@@ -2,6 +2,7 @@ package dto;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Created by gali on 9/16/17.
@@ -31,4 +32,14 @@ public class ExpertDto extends BaseDto {
 
     }
 
+    public static String fromExpertsList(List<ExpertDto> list) {
+        StringBuilder sb = new StringBuilder();
+        int counter = 1;
+        sb.append("#. Эксперт | Результат | Разница | Общий \n");
+        for (ExpertDto m : list) {
+            sb.append(counter + ". " + m.user + " | " + m.plus4 + " | " + m.plus2 + " | " + m.plus1 + " | " + m.total + "\n");
+            counter++;
+        }
+        return sb.toString();
+    }
 }
