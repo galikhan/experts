@@ -1,10 +1,8 @@
-package dao;
+package data.utils;
 
 import dto.ForecastDto;
-import dto.MatchDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.Messages;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -63,4 +61,24 @@ public class ForecastDataUtils {
         }
         return list;
     }
- }
+
+    public static List<ForecastDto> getForecastsByMatchAndLeague(Connection connection, int matchId, Long leagueId) {
+
+        List<ForecastDto> list = new ArrayList<>();
+        String query = "select * from fx_forecasts where league_ = ? and match_id_ = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setLong(1, leagueId);
+            ps.setInt(2, matchId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new ForecastDto(rs));
+                }
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+        }
+        return list;
+    }
+
+}

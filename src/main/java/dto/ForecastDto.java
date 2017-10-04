@@ -14,9 +14,9 @@ import java.util.Map;
 public class ForecastDto extends BaseDto {
 
     public Integer homePoint;
-    public Integer guestPoint;
+    public Integer guestsPoint;
     public Long id;
-    public String league;
+    public Long leagueId;
     public String user;
     public Integer matchId;
 
@@ -28,8 +28,8 @@ public class ForecastDto extends BaseDto {
         this.id = rs.getLong("id_");
         this.user = rs.getString("user_");
         this.homePoint = rs.getInt("home_point_");
-        this.guestPoint = rs.getInt("guests_point_");
-        this.league = rs.getString("league_");
+        this.guestsPoint = rs.getInt("guests_point_");
+        this.leagueId = rs.getLong("league_");
         this.matchId = rs.getInt("match_id_");
         this.createDate = DateUtils.fromSqlDate(rs.getDate("create_date_"));
         this.modifyDate = DateUtils.fromSqlDate(rs.getDate("modify_date_"));
@@ -49,7 +49,7 @@ public class ForecastDto extends BaseDto {
 
             MatchDto match = matchMap.get(f.matchId);
             if (match != null) {
-                sb.append(f.matchId + ". " + match.home + " " + f.homePoint + "-" + f.guestPoint + " " + match.guests + "\n");
+                sb.append(f.matchId + ". " + match.home + " " + f.homePoint + "-" + f.guestsPoint + " " + match.guests + "\n");
             } else {
                 sb.append(f.matchId + ". Нет матча с таким номером\n");
             }
@@ -69,4 +69,13 @@ public class ForecastDto extends BaseDto {
         return sb.toString();
     }
 
+    public static Map<Integer, ForecastDto> fromForecastListToMap(List<ForecastDto> list) {
+
+        Map<Integer, ForecastDto> map = new HashMap<>();
+
+        for (ForecastDto f : list) {
+            map.put(f.matchId, f);
+        }
+        return map;
+    }
 }

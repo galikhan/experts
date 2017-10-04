@@ -10,7 +10,7 @@ import java.util.List;
 public class ExpertDto extends BaseDto {
 
     public Long id;
-    public String league;
+    public Long leagueId;
     public String user;
     public Integer plus4 = 0;
     public Integer plus2 = 0;
@@ -23,7 +23,7 @@ public class ExpertDto extends BaseDto {
     public ExpertDto(ResultSet rs) throws SQLException {
 
         this.id = rs.getLong("id_");
-        this.league = rs.getString("league_");
+        this.leagueId = rs.getLong("league_");
         this.user = rs.getString("user_");
         this.plus4 = rs.getInt("plus4_");
         this.plus2 = rs.getInt("plus2_");

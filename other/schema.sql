@@ -90,3 +90,18 @@ create table fx_conversation (
   modify_date_ timestamp
 )
 
+
+
+drop table fx_files;
+create table fx_files (
+  id_  BIGINT PRIMARY KEY,
+  chat_id_  BIGINT,
+  type_ VARCHAR(20),
+  league_ BIGINT,
+  name_ VARCHAR(255),
+  html_name_ VARCHAR(255),
+  path_ TEXT,
+  active_ BOOLEAN,
+  create_date_ timestamp,
+  modify_date_ timestamp
+)

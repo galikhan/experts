@@ -1,4 +1,4 @@
-package dao;
+package data.utils;
 
 import dto.MatchDto;
 import org.slf4j.Logger;

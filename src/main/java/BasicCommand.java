@@ -1,7 +1,11 @@
 import com.google.gson.JsonObject;
-import dao.LeagueDataUtils;
-import dao.MatchDataUtils;
+import data.utils.ExpertDataUtils;
+import data.utils.FileDataUtils;
+import data.utils.ForecastDataUtils;
+import data.utils.LeagueDataUtils;
+import data.utils.MatchDataUtils;
 import dto.ExpertDto;
+import dto.FileDto;
 import dto.ForecastDto;
 import dto.LeagueDto;
 import dto.MatchDto;
@@ -10,12 +14,13 @@ import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.api.objects.Chat;
 import utils.Messages;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -194,21 +199,9 @@ public class BasicCommand {
         if (tokenizer.countTokens() > 0) {
             //result league1 1.0-1
             String league = tokenizer.nextToken();
-            String leagueUsername = "";
-            try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where name_ = ?")) {
-                ps.setString(1, league);
-                ResultSet rs = ps.executeQuery();
-                if (!rs.next()) {
-                    return Messages.NO_SUCH_LEAGUE;
-                } else {
-                    leagueUsername = rs.getString("creator_");
-                }
+            LeagueDto leagueDto = LeagueDataUtils.findByName(connection, league, chatId);
 
-            } catch (Exception e) {
-                log.error("error", e);
-            }
-
-            if (leagueUsername.equals(username)) {
+            if (leagueDto != null && username.equals(leagueDto.creator)) {
 
                 while (tokenizer.hasMoreTokens()) {
 
@@ -224,11 +217,11 @@ public class BasicCommand {
                     int homePoint = Integer.parseInt(innerTokenizer.nextToken());
                     int guestsPoint = Integer.parseInt(innerTokenizer.nextToken());
 
-                    String query = "update fx_matches set home_point_ = ?, guests_point_ = ?, finished_ = true modify_date_ = now() where league_ = ? and match_id_ = ?";
+                    String query = "update fx_matches set home_point_ = ?, guests_point_ = ?, finished_ = true, modify_date_ = now() where league_ = ? and match_id_ = ?";
                     try (PreparedStatement ps = connection.prepareStatement(query)) {
                         ps.setInt(1, homePoint);
                         ps.setInt(2, guestsPoint);
-                        ps.setString(3, league);
+                        ps.setLong(3, leagueDto.id);
                         ps.setInt(4, matchId);
                         ps.executeUpdate();
                     } catch (Exception e) {
@@ -236,12 +229,8 @@ public class BasicCommand {
                         return Messages.ERROR;
                     }
 
-                    int recalculateTopResult = recalculateTop(connection, league, matchId, homePoint, guestsPoint);
-                    if (recalculateTopResult > 0) {
-                        return Messages.SUCCESS;
-                    } else {
-                        return Messages.ERROR;
-                    }
+                    recalculateTop(connection, league, matchId, homePoint, guestsPoint, chatId);
+                    return generateTable(connection, chatId, text, username, matchId);
 
                 }
 
@@ -253,85 +242,50 @@ public class BasicCommand {
     }
 
 
-    public int recalculateTop(Connection connection, String league, int matchId, int homePoint, int guestsPoint) {
+    public void recalculateTop(Connection connection, String leagueName, int matchId, int homePoint, int guestsPoint, Long chatId) {
 
-        List<ForecastDto> list = new ArrayList<>();
-        String query = "select * from fx_forecasts where league_ = ? and match_id_ = ?";
+        log.info("recalculateTop, {}", leagueName);
+        LeagueDto league = LeagueDataUtils.findByName(connection, leagueName, chatId);
+        log.info("league, {}", league.id);
 
-        try (PreparedStatement ps = connection.prepareStatement(query)) {
-            ps.setString(1, league);
-            ps.setInt(2, matchId);
-            try (ResultSet rs = ps.executeQuery()) {
+        List<ForecastDto> forecasts = ForecastDataUtils.getForecastsByMatchAndLeague(connection, matchId, league.id);
+        log.info("forecasts, {}", forecasts.size());
 
-                while (rs.next()) {
-                    list.add(new ForecastDto(rs));
-                }
-            }
-        } catch (Exception e) {
-            log.error("error", e);
-        }
+        ExpertDataUtils.deleteExperts(connection, league.id);
 
-        Map<String, ExpertDto> map = new HashMap<>();
-        String select = "select * from fx_experts where league_ = ?";
-        try (PreparedStatement ps1 = connection.prepareStatement(select)) {
+        for (ForecastDto f : forecasts) {
 
-            ps1.setString(1, league);
-            ResultSet rs1 = ps1.executeQuery();
-            while (rs1.next()) {
-                ExpertDto ed = new ExpertDto(rs1);
-                map.put(ed.user, ed);
-            }
-        } catch (Exception e) {
-            log.error("error", e);
-        }
+            ExpertDto expertDto = new ExpertDto();
 
-
-        for (ForecastDto f : list) {
-
-            ExpertDto expertDto = map.get(f.user);
-            boolean expertExist = true;
-            String expertQuery = null;
-
-            if (expertDto == null) {
-                expertExist = false;
-                expertDto = new ExpertDto();
-            }
-
-            if (f.homePoint == homePoint && f.guestPoint == guestsPoint) {
+            if (f.homePoint == homePoint && f.guestsPoint == guestsPoint) {
                 expertDto.plus4 += 1;
                 expertDto.total += 4;
-            } else if (pointDiff(homePoint, guestsPoint) == pointDiff(f.homePoint, f.guestPoint)) {
+            } else if (pointDiff(homePoint, guestsPoint) == pointDiff(f.homePoint, f.guestsPoint)) {
                 expertDto.plus2 += 1;
                 expertDto.total += 2;
-            } else if (matchResult(homePoint, guestsPoint) == matchResult(f.homePoint, f.guestPoint)) {
+            } else if (matchResult(homePoint, guestsPoint) == matchResult(f.homePoint, f.guestsPoint)) {
                 expertDto.plus1 += 1;
                 expertDto.total += 1;
             }
             expertDto.user = f.user;
-            expertDto.league = f.league;
+            expertDto.leagueId = f.leagueId;
 
-            if (expertExist) {
-                expertQuery = "update fx_experts set plus4_ = ?, plus2_ = ?, plus1_ = ?, total_ = ? where league_ = ? and user_ = ?";
-            } else {
-                expertQuery = "insert into fx_experts(id_, plus4_, plus2_, plus1_, total_, league_, user_) values(nextval('fx_sequence'), " +
-                        "?, ?, ?, ?, ?, ?)";
-            }
+            String expertQuery = "insert into fx_experts(id_, plus4_, plus2_, plus1_, total_, league_, user_, modify_date_, create_date_) values(nextval('fx_sequence'), " +
+                    "?, ?, ?, ?, ?, ?, now(), now())";
 
             log.info("query {}", expertQuery);
-            try (PreparedStatement ps2 = connection.prepareStatement(expertQuery)) {
-                ps2.setInt(1, expertDto.plus4);
-                ps2.setInt(2, expertDto.plus2);
-                ps2.setInt(3, expertDto.plus1);
-                ps2.setInt(4, expertDto.total);
-                ps2.setString(5, expertDto.league);
-                ps2.setString(6, expertDto.user);
-                ps2.executeUpdate();
+            try (PreparedStatement ps = connection.prepareStatement(expertQuery)) {
+                ps.setInt(1, expertDto.plus4);
+                ps.setInt(2, expertDto.plus2);
+                ps.setInt(3, expertDto.plus1);
+                ps.setInt(4, expertDto.total);
+                ps.setLong(5, expertDto.leagueId);
+                ps.setString(6, expertDto.user);
+                ps.executeUpdate();
             } catch (SQLException e) {
                 log.error("error", e);
             }
         }
-
-        return 1;
     }
 
 
@@ -364,7 +318,7 @@ public class BasicCommand {
         if (list.isEmpty() == false) {
             JsonObject json = LeagueDto.fromLeagueListToJson(list);
             conversation.startNewConversation(connection, username, request, json.toString(), chatId, Messages.C_LEAGUES);
-            return LeagueDto.fromLeagueList("/" , list);
+            return LeagueDto.fromLeagueList("/", list);
         }
         return Messages.NO_LEAGUES_FOR_THIS_USER;
     }
@@ -372,33 +326,123 @@ public class BasicCommand {
 
     //show latest league top table
     public String table(Connection connection, long chatId, String text, String username) {
-//        StringTokenizer tokenizer = new StringTokenizer(text, " ");
-//        tokenizer.nextToken();
-//
-//        if (tokenizer.countTokens() > 0) {
-//            //result league1 1.0-1
-//            String league = tokenizer.nextToken();
-//            LeagueDto leagueDto = LeagueDataUtils.findByName(connection, league, chatId);
-//
-//            List<ExpertDto> list = new ArrayList<>();
-//            try (PreparedStatement ps = connection.prepareStatement("select * from fx_experts where league_ = ? order by total_ desc")) {
-//                ps.setLong(1, league);
-//                ResultSet rs = ps.executeQuery();
-//                while (rs.next()) {
-//                    list.add(new ExpertDto(rs));
-//                }
-//            } catch (Exception e) {
-//                log.error("error", e);
-//            }
-//            return ExpertDto.fromExpertsList(list);
-//        }
-//        return Messages.FAILURE;
+
+        LeagueDto league = LeagueDataUtils.findLastLeague(connection, chatId);
+        if(league.id!=null) {
+            FileDto file = FileDataUtils.findByParams(connection, chatId, league.id, Messages.FILE_TABLE);
+            return file.path + file.name;
+        }
+        return Messages.NO_LEAGUES_FOR_THIS_CHAT;
+    }
+
+    public String generateTable(Connection connection, long chatId, String text, String username, int matchId) {
 
         LeagueDto leagueDto = LeagueDataUtils.getLatestLeague(connection, chatId);
-        return null;
+        List<MatchDto> matches = MatchDataUtils.getByLeagueId(connection, leagueDto.id);
+
+        StringBuilder sb = new StringBuilder("<html>");
+        StringBuilder sbHead = new StringBuilder();
+        sb.append("<style>" +
+                "table {" +
+                "    border-collapse: collapse;" +
+                "    width: 100%;" +
+                "}" +
+                "th, td {" +
+                "    text-align: left;" +
+                "    padding: 8px;" +
+                "}" +
+                "tr:nth-child(even){" +
+                "   background-color: #f2f2f2;" +
+                "   border-bottom: 1px solid black;" +
+                "}" +
+                "th {" +
+                "    background-color: #4CAF50;" +
+                "    color: white;" +
+                "}" +
+                "" +
+                "</style>");
+
+        sb.append("<table>");
+        sbHead.append("<thead><tr>");
+        sbHead.append("<th>experts</th>");
+        for (MatchDto match : matches) {
+            sbHead.append("<th>" + match.home + " -\n" + match.guests + "</th>");
+        }
+        sbHead.append("<th>total</th>");
+        sbHead.append("</tr></thead>");
+        sb.append(sbHead);
+
+        List<ExpertDto> experts = ExpertDataUtils.experts(connection, leagueDto.id);
+        sb.append("<tbody>");
+        for (ExpertDto expert : experts) {
+
+            List<ForecastDto> forecasts = ForecastDataUtils.getForecasts(connection, expert.user, leagueDto.id);
+            Map<Integer, ForecastDto> map = ForecastDto.fromForecastListToMap(forecasts);
+            sb.append("<tr><td rowspan=2>" + expert.user + "</td>");
+
+            StringBuilder firstSpan = new StringBuilder();
+            firstSpan.append("<tr>");
+            int total = 0;
+            for (MatchDto match : matches) {
+
+                ForecastDto forecast = map.get(match.matchId);
+
+                sb.append("<td>" + forecast.homePoint + " -\n" + forecast.guestsPoint + "</td>");
+                int matchPoint = 0;
+                if (forecast.homePoint == match.homePoint && forecast.guestsPoint == match.guestsPoint) {
+                    matchPoint = 4;
+                } else if (pointDiff(match.homePoint, match.guestsPoint) == pointDiff(forecast.homePoint, forecast.guestsPoint)) {
+                    matchPoint = 2;
+                } else if (matchResult(match.homePoint, match.guestsPoint) == matchResult(forecast.homePoint, forecast.guestsPoint)) {
+                    matchPoint = 1;
+                }
+                total += matchPoint;
+                firstSpan.append("<td>" + matchPoint + "</td>");
+            }
+            sb.append("</tr>");
+
+            firstSpan.append("<td>" + total + "</td>");
+            firstSpan.append("</tr>");
+            sb.append(firstSpan);
+        }
+        sb.append("</tbody>");
+        sb.append("</html>");
+
+        FileDataUtils.inActivatePrevFiles(connection, chatId, leagueDto.id, Messages.FILE_TABLE);
+
+        FileDto fileDto = new FileDto();
+        fileDto.type = Messages.FILE_TABLE;
+        fileDto.chatId = chatId;
+        fileDto.leagueId = leagueDto.id;
+        fileDto.name = FileDataUtils.formatName(chatId, leagueDto.id, matchId, "png");
+        fileDto.htmlName = FileDataUtils.formatName(chatId, leagueDto.id, matchId, "html");
+        fileDto.path = "/Users/gali/IdeaProjects/FootBallExpertBot/files/";
+
+        int save = FileDataUtils.save(connection, fileDto);
+        if (save > 0) {
+            try {
+                File file = new File(fileDto.path + fileDto.htmlName);
+                FileWriter write = new FileWriter(file);
+                write.write(sb.toString());
+                write.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Process proc = null;
+            try {
+                proc = Runtime.getRuntime().exec("java -jar /Users/gali/Documents/webvector/webvector-3.4.jar file://" + fileDto.path+fileDto.htmlName + " " + fileDto.path+fileDto.name  + " png");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return table(connection, chatId, null, null);
     }
 
     public String tableAll(Connection connection, long chatId, String text, String username) {
         return null;
     }
+
 }
+

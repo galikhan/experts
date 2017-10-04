@@ -1,9 +1,8 @@
-package dao;
+package data.utils;
 
 import dto.LeagueDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.Messages;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -88,4 +87,19 @@ public class LeagueDataUtils {
         }
         return null;
     }
+
+    public static LeagueDto findLastLeague(Connection connection, Long chatId) {
+        try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where chat_id_ = ? order by id_ desc limit 1")) {
+            ps.setLong(1, chatId);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()) {
+                return new LeagueDto(rs);
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+        }
+        return null;
+    }
+
+
 }

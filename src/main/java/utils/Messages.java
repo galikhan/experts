@@ -27,7 +27,7 @@ public class Messages {
     public static String ADD_MATCHES = "/add_matches";
     public static String RESULT = "/result";
     public static String EXPERTS_TOP = "/experts_top";
-    public static String LEAGUES_FROM = "/leaguesfrom";
+    public static String LEAGUE_FROM = "/leaguefrom";
     public static String TABLE = "/table";
     public static String TABLE_ALL = "/table_all";
 
@@ -42,5 +42,7 @@ public class Messages {
     public static String MENU_SEND_FORECAST = "Отправить прогноз";
     public static String MENU_VIEW_FORECAST = "Просмотреть прогноз";
 
+    public static String FILE_TABLE = "TABLE";
+    public static String FILE_TOTAL = "TOTAL";
 
 }
