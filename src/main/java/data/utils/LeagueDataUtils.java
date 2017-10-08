@@ -3,6 +3,7 @@ package data.utils;
 import dto.LeagueDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.Messages;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -101,5 +102,26 @@ public class LeagueDataUtils {
         return null;
     }
 
+    public static int save(Connection connection, LeagueDto leagueDto) {
 
+        String query = "" +
+                "insert into " +
+                "   fx_leagues(id_, name_, creator_, chat_id_, desc_, group_chat_, season_, create_date_, modify_date_) " +
+                "   values(nextval('fx_sequence'), ?, ?, ?, ?, ?, ?, now(), now())";
+
+        log.info("query ~ {}", query);
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+
+            ps.setString(1, leagueDto.name);
+            ps.setString(2, leagueDto.creator);
+            ps.setLong(3, leagueDto.chatId);
+            ps.setString(4, leagueDto.desc);
+            ps.setBoolean(5, leagueDto.groupChat);
+            ps.setLong(6, leagueDto.season);
+            return ps.executeUpdate();
+        } catch (Exception e) {
+            log.error("error", e);
+        }
+        return 0;
+    }
 }

@@ -1,7 +1,9 @@
 Cписок комманд
 
-new_league - Новая лига. Пример : (new_league <league1>)
-leagues - Список последних 5 лиг.
+new_seasons - Новый сезон. Пример : (new_seasons <my_season>)
+seasons - Список последних 10 сезонов .
+new_league - Новая лига. Пример : (new_league <my_league>)
+leagues - Список последних 10 лиг.
 leaguefrom - Показать лиги от пользователя .
 matches - Список всех матчей
 add_matches - Добавить матчи к лиге. Пример : ( add_matches <league1> Арсенал-Ливерпуль Челси-МЮ ...)

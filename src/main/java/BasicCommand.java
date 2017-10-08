@@ -4,11 +4,13 @@ import data.utils.FileDataUtils;
 import data.utils.ForecastDataUtils;
 import data.utils.LeagueDataUtils;
 import data.utils.MatchDataUtils;
+import data.utils.SeasonDataUtils;
 import dto.ExpertDto;
 import dto.FileDto;
 import dto.ForecastDto;
 import dto.LeagueDto;
 import dto.MatchDto;
+import dto.SeasonDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.api.objects.Chat;
@@ -20,7 +22,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -36,35 +37,26 @@ public class BasicCommand {
 
         String chatTitle = chat.getTitle();
         boolean groupChat = chat.isGroupChat() || chat.isSuperGroupChat();
-        log.info("grooup chaat {}", groupChat);
         StringTokenizer tokenizer = new StringTokenizer(text, " ");
         if (tokenizer.countTokens() == 2) {
-
-            String command = tokenizer.nextToken();
+            tokenizer.nextToken();
             String name = tokenizer.nextToken();
 
-            String query = "insert into fx_leagues(id_, name_, creator_, chat_id_, desc_, group_chat_, create_date_, modify_date_) values(nextval('fx_sequence'), ?, ?, ?, ?, ?, now(), now())";
-            log.info("query ~ {}", query);
+            SeasonDto seasonDto = SeasonDataUtils.findByChatId(connection, chatId);
 
-            try (PreparedStatement ps = connection.prepareStatement(query)) {
-
-                ps.setString(1, name);
-                ps.setString(2, username);
-                ps.setLong(3, chatId);
-                ps.setString(4, chatTitle);
-                ps.setBoolean(5, groupChat);
-                int result = ps.executeUpdate();
-                if (result > 0) {
-                    return Messages.SUCCESS;
-                } else {
-                    return Messages.ERROR;
-                }
-
-            } catch (Exception e) {
-                log.error("error", e);
-                return Messages.UNIQUE;
+            LeagueDto leagueDto = new LeagueDto();
+            leagueDto.creator = username;
+            leagueDto.desc = chatTitle;
+            leagueDto.groupChat = groupChat;
+            leagueDto.chatId = chatId;
+            leagueDto.name = name;
+            leagueDto.season = seasonDto.id;
+            int result = LeagueDataUtils.save(connection, leagueDto);
+            if (result > 0) {
+                return Messages.SUCCESS;
+            } else {
+                return Messages.ERROR;
             }
-
         }
         return Messages.NEW_LEAGUE_FAILURE;
     }
@@ -230,7 +222,8 @@ public class BasicCommand {
                     }
 
                     recalculateTop(connection, league, matchId, homePoint, guestsPoint, chatId);
-                    return generateTable(connection, chatId, text, username, matchId);
+                    generateTable(connection, chatId, text, username, matchId);
+                    return Messages.SUCCESS;
 
                 }
 
@@ -269,22 +262,15 @@ public class BasicCommand {
             }
             expertDto.user = f.user;
             expertDto.leagueId = f.leagueId;
+            ExpertDataUtils.save(connection, expertDto);
+        }
 
-            String expertQuery = "insert into fx_experts(id_, plus4_, plus2_, plus1_, total_, league_, user_, modify_date_, create_date_) values(nextval('fx_sequence'), " +
-                    "?, ?, ?, ?, ?, ?, now(), now())";
-
-            log.info("query {}", expertQuery);
-            try (PreparedStatement ps = connection.prepareStatement(expertQuery)) {
-                ps.setInt(1, expertDto.plus4);
-                ps.setInt(2, expertDto.plus2);
-                ps.setInt(3, expertDto.plus1);
-                ps.setInt(4, expertDto.total);
-                ps.setLong(5, expertDto.leagueId);
-                ps.setString(6, expertDto.user);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                log.error("error", e);
-            }
+        List<ExpertDto> experts = ExpertDataUtils.experts(connection, league.id);
+        int order = 1;
+        for (ExpertDto expert : experts) {
+            expert.order = order;
+            ExpertDataUtils.save(connection, expert);
+            order += 1;
         }
     }
 
@@ -328,7 +314,7 @@ public class BasicCommand {
     public String table(Connection connection, long chatId, String text, String username) {
 
         LeagueDto league = LeagueDataUtils.findLastLeague(connection, chatId);
-        if(league.id!=null) {
+        if (league.id != null) {
             FileDto file = FileDataUtils.findByParams(connection, chatId, league.id, Messages.FILE_TABLE);
             return file.path + file.name;
         }
@@ -364,9 +350,10 @@ public class BasicCommand {
 
         sb.append("<table>");
         sbHead.append("<thead><tr>");
+        sbHead.append("<th>#</th>");
         sbHead.append("<th>experts</th>");
         for (MatchDto match : matches) {
-            sbHead.append("<th>" + match.home + " -\n" + match.guests + "</th>");
+            sbHead.append("<th>" + match.home + " (" + match.homePoint + "-" + match.guestsPoint + ")<br>" + match.guests + "</th>");
         }
         sbHead.append("<th>total</th>");
         sbHead.append("</tr></thead>");
@@ -374,11 +361,14 @@ public class BasicCommand {
 
         List<ExpertDto> experts = ExpertDataUtils.experts(connection, leagueDto.id);
         sb.append("<tbody>");
+        int order = 1;
         for (ExpertDto expert : experts) {
 
             List<ForecastDto> forecasts = ForecastDataUtils.getForecasts(connection, expert.user, leagueDto.id);
             Map<Integer, ForecastDto> map = ForecastDto.fromForecastListToMap(forecasts);
-            sb.append("<tr><td rowspan=2>" + expert.user + "</td>");
+            sb.append("<tr>" +
+                    "<td rowspan=2>" + order + ".</td>" +
+                    "<td rowspan=2>" + expert.user + "</td>");
 
             StringBuilder firstSpan = new StringBuilder();
             firstSpan.append("<tr>");
@@ -404,6 +394,7 @@ public class BasicCommand {
             firstSpan.append("<td>" + total + "</td>");
             firstSpan.append("</tr>");
             sb.append(firstSpan);
+            order++;
         }
         sb.append("</tbody>");
         sb.append("</html>");
@@ -430,9 +421,9 @@ public class BasicCommand {
                 e.printStackTrace();
             }
 
-            Process proc = null;
+
             try {
-                proc = Runtime.getRuntime().exec("java -jar /Users/gali/Documents/webvector/webvector-3.4.jar file://" + fileDto.path+fileDto.htmlName + " " + fileDto.path+fileDto.name  + " png");
+                Process proc = Runtime.getRuntime().exec("java -jar /Users/gali/Documents/webvector/webvector-3.4.jar file://" + fileDto.path + fileDto.htmlName + " " + fileDto.path + fileDto.name + " png");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -444,5 +435,36 @@ public class BasicCommand {
         return null;
     }
 
+    public String newSeason(Connection connection, long chatId, String text, String username, Chat chat) {
+
+
+        StringTokenizer tokenizer = new StringTokenizer(text, " ");
+        if (tokenizer.countTokens() == 2) {
+
+            SeasonDataUtils.disableAll(connection, chatId);
+
+            tokenizer.nextToken();
+            String name = tokenizer.nextToken();
+            SeasonDto seasonDto = new SeasonDto();
+            seasonDto.creator = username;
+            seasonDto.chatId = chatId;
+            seasonDto.name = name;
+            int result = SeasonDataUtils.save(connection, seasonDto);
+            if (result > 0) {
+                return Messages.SUCCESS;
+            } else {
+                return Messages.ERROR;
+            }
+        }
+        return Messages.NEW_SEASON_FAILURE;
+    }
+
+    public String seasons(Connection connection, long chatId, String text, String username, Chat chat) {
+        List<SeasonDto> list = SeasonDataUtils.findAllByChatId(connection, chatId);
+        if(list.isEmpty()) {
+            return Messages.NO_SEASONS_FOR_CHAT;
+        }
+        return SeasonDto.fromSeasonListToString(list);
+    }
 }
 

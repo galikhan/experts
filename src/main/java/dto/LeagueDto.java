@@ -18,6 +18,12 @@ public class LeagueDto extends BaseDto{
     public String creator;
     public String desc;
     public Long id;
+    public Long chatId;
+    public boolean groupChat;
+    public Long season;
+
+    public LeagueDto() {
+    }
 
     public LeagueDto(ResultSet rs) throws SQLException {
 
@@ -25,6 +31,9 @@ public class LeagueDto extends BaseDto{
         this.name = rs.getString("name_");
         this.creator = rs.getString("creator_");
         this.desc = rs.getString("desc_");
+        this.chatId = rs.getLong("chat_id_");
+        this.groupChat = rs.getBoolean("group_chat_");
+        this.season = rs.getLong("season_");
         this.createDate = DateUtils.fromSqlDate(rs.getDate("create_date_"));
         this.modifyDate = DateUtils.fromSqlDate(rs.getDate("modify_date_"));
 

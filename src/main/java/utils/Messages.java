@@ -12,6 +12,7 @@ public class Messages {
     public static String NO_SUCH_LEAGUE = "Такой лиги не существует" ;
     public static String CANT_UPDATE = "У вас нет прав на обновление" ;
     public static String NEW_LEAGUE_FAILURE = "Нужно указать название лиги: \n /new_league league";
+    public static String NEW_SEASON_FAILURE = "Нужно указать название сезона: \n /new_season my_season";
     public static String ADD_MESSAGES_FAILURE = "Произошла ошибка. Формат ввода: \n add_matches league Арсенал-Ливерпуль Челси-МЮ ...";
     public static String FORECAST_FAILURE = "Произошла ошибка. Формат ввода: \n forecast league 1.0-1 2.2-1 ...";
     public static String LEAGUE_MATCHES_FAILURE = "Произошла ошибка. Формат ввода: \n matches league";
@@ -30,6 +31,8 @@ public class Messages {
     public static String LEAGUE_FROM = "/leaguefrom";
     public static String TABLE = "/table";
     public static String TABLE_ALL = "/table_all";
+    public static String NEW_SEASON = "/new_season";
+    public static String SEASONS = "/seasons";
 
     public static String SLASH_HELP = "/help";
 
@@ -45,4 +48,5 @@ public class Messages {
     public static String FILE_TABLE = "TABLE";
     public static String FILE_TOTAL = "TOTAL";
 
+    public static String NO_SEASONS_FOR_CHAT = "В чате нет cезонов";;
 }

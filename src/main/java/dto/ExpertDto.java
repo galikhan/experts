@@ -15,6 +15,8 @@ public class ExpertDto extends BaseDto {
     public Integer plus4 = 0;
     public Integer plus2 = 0;
     public Integer plus1 = 0;
+    public Integer order = 0;
+    public Integer scale = 0;
     public Integer total = 0;
 
     public ExpertDto() {
@@ -29,6 +31,8 @@ public class ExpertDto extends BaseDto {
         this.plus2 = rs.getInt("plus2_");
         this.plus1 = rs.getInt("plus1_");
         this.total = rs.getInt("total_");
+        this.order = rs.getInt("order_");
+        this.scale = rs.getInt("scale_");
 
     }
 
