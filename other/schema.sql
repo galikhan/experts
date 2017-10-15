@@ -8,11 +8,14 @@ create table fx_leagues (
   desc_ text,
   chat_id_ BIGINT,
   group_chat_ boolean,
+  season_ BIGINT,
+  active_ BOOLEAN,
   create_date_ timestamp,
   modify_date_ timestamp
 )
 ALTER TABLE fx_leagues ADD CONSTRAINT uq_name__chat_id_ UNIQUE (name_, chat_id_);
 ALTER TABLE fx_leagues ADD COLUMN season_ BIGINT;
+ALTER TABLE fx_leagues ADD COLUMN active_ BOOLEAN;
 
 drop table fx_users;
 create table fx_users (
@@ -61,11 +64,15 @@ create table fx_experts (
   total_ INTEGER,
   order_ integer,
   scale_ integer,
+  version_ integer,
+  type_ VARCHAR(255)
   create_date_ timestamp,
   modify_date_ timestamp
 )
-alter table fx_experts add column order_ integer;
-alter table fx_experts add column scale_ integer;
+
+alter table fx_experts add column version_ integer;
+alter table fx_experts add column type_ varchar(255);
+
 
 drop table fx_request_log;
 create table fx_request_log (

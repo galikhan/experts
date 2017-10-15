@@ -21,6 +21,9 @@ public class MatchDto extends BaseDto {
     public Integer matchId;
     public Boolean finished = false;
 
+    public MatchDto() {
+    }
+
     public MatchDto(ResultSet rs) throws SQLException {
 
         this.home = rs.getString("home_");

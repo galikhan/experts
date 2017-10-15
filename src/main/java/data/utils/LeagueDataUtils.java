@@ -102,6 +102,19 @@ public class LeagueDataUtils {
         return null;
     }
 
+    public static LeagueDto findLastInActiveLeague(Connection connection, Long chatId) {
+        try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where chat_id_ = ? and active_ = false order by id_ desc limit 1")) {
+            ps.setLong(1, chatId);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()) {
+                return new LeagueDto(rs);
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+        }
+        return null;
+    }
+
     public static int save(Connection connection, LeagueDto leagueDto) {
 
         String query = "" +

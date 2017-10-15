@@ -49,4 +49,6 @@ public class Messages {
     public static String FILE_TOTAL = "TOTAL";
 
     public static String NO_SEASONS_FOR_CHAT = "В чате нет cезонов";;
+    public static String MATCH_FINISHED = "Матч окончен";
+
 }

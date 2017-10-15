@@ -14,6 +14,7 @@ import dto.SeasonDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.api.objects.Chat;
+import utils.ExpertUtils;
 import utils.Messages;
 
 import java.io.File;
@@ -190,10 +191,10 @@ public class BasicCommand {
 
         if (tokenizer.countTokens() > 0) {
             //result league1 1.0-1
-            String league = tokenizer.nextToken();
-            LeagueDto leagueDto = LeagueDataUtils.findByName(connection, league, chatId);
+            String leagueName = tokenizer.nextToken();
+            LeagueDto league = LeagueDataUtils.findByName(connection, leagueName, chatId);
 
-            if (leagueDto != null && username.equals(leagueDto.creator)) {
+            if (league != null && username.equals(league.creator)) {
 
                 while (tokenizer.hasMoreTokens()) {
 
@@ -209,22 +210,22 @@ public class BasicCommand {
                     int homePoint = Integer.parseInt(innerTokenizer.nextToken());
                     int guestsPoint = Integer.parseInt(innerTokenizer.nextToken());
 
-                    String query = "update fx_matches set home_point_ = ?, guests_point_ = ?, finished_ = true, modify_date_ = now() where league_ = ? and match_id_ = ?";
-                    try (PreparedStatement ps = connection.prepareStatement(query)) {
-                        ps.setInt(1, homePoint);
-                        ps.setInt(2, guestsPoint);
-                        ps.setLong(3, leagueDto.id);
-                        ps.setInt(4, matchId);
-                        ps.executeUpdate();
-                    } catch (Exception e) {
-                        log.error("error", e);
-                        return Messages.ERROR;
-                    }
+                    MatchDto match = MatchDataUtils.getByLeagueAndMatchId(connection, league.id, matchId);
+                    if (match != null && match.finished == false) {
 
-                    recalculateTop(connection, league, matchId, homePoint, guestsPoint, chatId);
+                        MatchDto matchDto = new MatchDto();
+                        matchDto.homePoint = homePoint;
+                        matchDto.guestsPoint = guestsPoint;
+                        matchDto.league = league.id;
+                        matchDto.matchId = matchId;
+
+                        MatchDataUtils.save(connection, matchDto);
+                        recalculateTop(connection, league.id, matchId, homePoint, guestsPoint, chatId);
+                    } else {
+                        return Messages.MATCH_FINISHED;
+                    }
                     generateTable(connection, chatId, text, username, matchId);
                     return Messages.SUCCESS;
-
                 }
 
             } else {
@@ -235,43 +236,61 @@ public class BasicCommand {
     }
 
 
-    public void recalculateTop(Connection connection, String leagueName, int matchId, int homePoint, int guestsPoint, Long chatId) {
+    public void recalculateTop(Connection connection, Long leagueId, int matchId, int homePoint, int guestsPoint, Long chatId) {
 
-        log.info("recalculateTop, {}", leagueName);
-        LeagueDto league = LeagueDataUtils.findByName(connection, leagueName, chatId);
-        log.info("league, {}", league.id);
 
-        List<ForecastDto> forecasts = ForecastDataUtils.getForecastsByMatchAndLeague(connection, matchId, league.id);
-        log.info("forecasts, {}", forecasts.size());
+        int lastVersion = ExpertDataUtils.lastVersion(connection, leagueId, ExpertUtils.SINGLE);
+        lastVersion += 1;
+        List<ForecastDto> forecasts = ForecastDataUtils.getForecastsByMatchAndLeague(connection, matchId, leagueId);
+        for (ForecastDto forecast : forecasts) {
 
-        ExpertDataUtils.deleteExperts(connection, league.id);
-
-        for (ForecastDto f : forecasts) {
-
-            ExpertDto expertDto = new ExpertDto();
-
-            if (f.homePoint == homePoint && f.guestsPoint == guestsPoint) {
-                expertDto.plus4 += 1;
-                expertDto.total += 4;
-            } else if (pointDiff(homePoint, guestsPoint) == pointDiff(f.homePoint, f.guestsPoint)) {
-                expertDto.plus2 += 1;
-                expertDto.total += 2;
-            } else if (matchResult(homePoint, guestsPoint) == matchResult(f.homePoint, f.guestsPoint)) {
-                expertDto.plus1 += 1;
-                expertDto.total += 1;
+            ExpertDto expert = new ExpertDto();
+            if (forecast.homePoint == homePoint && forecast.guestsPoint == guestsPoint) {
+                expert.plus4 += 1;
+                expert.total += 4;
+            } else if (pointDiff(homePoint, guestsPoint) == pointDiff(forecast.homePoint, forecast.guestsPoint)) {
+                expert.plus2 += 1;
+                expert.total += 2;
+            } else if (matchResult(homePoint, guestsPoint) == matchResult(forecast.homePoint, forecast.guestsPoint)) {
+                expert.plus1 += 1;
+                expert.total += 1;
             }
-            expertDto.user = f.user;
-            expertDto.leagueId = f.leagueId;
-            ExpertDataUtils.save(connection, expertDto);
+            expert.user = forecast.user;
+            expert.leagueId = forecast.leagueId;
+            expert.version = lastVersion;
+            expert.type = ExpertUtils.SINGLE;
+            ExpertDataUtils.save(connection, expert);
         }
 
-        List<ExpertDto> experts = ExpertDataUtils.experts(connection, league.id);
+        LeagueDto league = LeagueDataUtils.findById(connection, leagueId);
+        //newly summed results
+        List<ExpertDto> experts = ExpertDataUtils.experts(connection, leagueId, lastVersion, ExpertUtils.SINGLE);
         int order = 1;
         for (ExpertDto expert : experts) {
             expert.order = order;
-            ExpertDataUtils.save(connection, expert);
+            ExpertDataUtils.update(connection, expert);
             order += 1;
         }
+
+        Map<String, ExpertDto> totalMapExpert = ExpertDataUtils.seasonTableMap(connection, league.season);
+        Map<String, ExpertDto> prevMapExpert = ExpertDataUtils.expertMap(connection, leagueId, lastVersion - 1);
+
+        for (ExpertDto expert : experts) {
+            ExpertDto totalExpert = totalMapExpert.get(expert.user);
+            log.debug("totalExpert +4 ~ {}, +2 ~ {}, +1 ~ {}, total ~ {}", totalExpert.plus4, totalExpert.plus2, totalExpert.plus1, totalExpert.total);
+
+            if (prevMapExpert.get(expert.user) != null) {
+                ExpertDto prevExpert = prevMapExpert.get(expert.user);
+                totalExpert.scale = prevExpert.order - totalExpert.order;
+            }
+
+            totalExpert.type = ExpertUtils.GLOBAL;
+            totalExpert.leagueId = leagueId;
+            totalExpert.version = lastVersion;
+
+            ExpertDataUtils.save(connection, totalExpert);
+        }
+//        }
     }
 
 
@@ -353,46 +372,76 @@ public class BasicCommand {
         sbHead.append("<th>#</th>");
         sbHead.append("<th>experts</th>");
         for (MatchDto match : matches) {
-            sbHead.append("<th>" + match.home + " (" + match.homePoint + "-" + match.guestsPoint + ")<br>" + match.guests + "</th>");
+            if(match.finished) {
+                sbHead.append("<th>" + match.home + " (" + match.homePoint + "-" + match.guestsPoint + ")<br>" + match.guests + "</th>");
+            }
         }
         sbHead.append("<th>total</th>");
+        sbHead.append("<th>total(all)</th>");
+        sbHead.append("<th>scale</th>");
         sbHead.append("</tr></thead>");
         sb.append(sbHead);
 
-        List<ExpertDto> experts = ExpertDataUtils.experts(connection, leagueDto.id);
+        //@TODO rework
+        int lastVersion = ExpertDataUtils.lastVersion(connection, leagueDto.id, ExpertUtils.SINGLE);
+        log.info("last version  {}, liga {}", lastVersion, leagueDto.id);
+
+        List<ExpertDto> globalExperts = ExpertDataUtils.experts(connection, leagueDto.id, lastVersion, ExpertUtils.GLOBAL);
+
+        List<ExpertDto> experts = ExpertDataUtils.experts(connection, leagueDto.id, lastVersion, ExpertUtils.SINGLE);
+        Map<String, ExpertDto> expertMap = ExpertDto.fromExpertsListToMap(experts);
+
         sb.append("<tbody>");
         int order = 1;
-        for (ExpertDto expert : experts) {
+
+        log.info("experts {}", globalExperts.size());
+        for (ExpertDto globalExpert : globalExperts) {
+
+            ExpertDto expert = expertMap.get(globalExpert.user);
 
             List<ForecastDto> forecasts = ForecastDataUtils.getForecasts(connection, expert.user, leagueDto.id);
             Map<Integer, ForecastDto> map = ForecastDto.fromForecastListToMap(forecasts);
-            sb.append("<tr>" +
+            sb.append("" +
+                    "<tr>" +
                     "<td rowspan=2>" + order + ".</td>" +
                     "<td rowspan=2>" + expert.user + "</td>");
 
             StringBuilder firstSpan = new StringBuilder();
             firstSpan.append("<tr>");
+
             int total = 0;
+            log.info("matches {}", matches.size());
+
             for (MatchDto match : matches) {
 
-                ForecastDto forecast = map.get(match.matchId);
+                if(match.finished) {
+                    ForecastDto forecast = map.get(match.matchId);
+                    sb.append("<td>" + forecast.homePoint + " - " + forecast.guestsPoint + "</td>");
 
-                sb.append("<td>" + forecast.homePoint + " -\n" + forecast.guestsPoint + "</td>");
-                int matchPoint = 0;
-                if (forecast.homePoint == match.homePoint && forecast.guestsPoint == match.guestsPoint) {
-                    matchPoint = 4;
-                } else if (pointDiff(match.homePoint, match.guestsPoint) == pointDiff(forecast.homePoint, forecast.guestsPoint)) {
-                    matchPoint = 2;
-                } else if (matchResult(match.homePoint, match.guestsPoint) == matchResult(forecast.homePoint, forecast.guestsPoint)) {
-                    matchPoint = 1;
+                    int matchPoint = 0;
+                    if (forecast.homePoint == match.homePoint && forecast.guestsPoint == match.guestsPoint) {
+                        matchPoint = 4;
+                    } else if (pointDiff(match.homePoint, match.guestsPoint) == pointDiff(forecast.homePoint, forecast.guestsPoint)) {
+                        matchPoint = 2;
+                    } else if (matchResult(match.homePoint, match.guestsPoint) == matchResult(forecast.homePoint, forecast.guestsPoint)) {
+                        matchPoint = 1;
+                    }
+                    total += matchPoint;
+                    firstSpan.append("<td>" + matchPoint + "</td>");
                 }
-                total += matchPoint;
-                firstSpan.append("<td>" + matchPoint + "</td>");
             }
-            sb.append("</tr>");
-
             firstSpan.append("<td>" + total + "</td>");
+            firstSpan.append("<td>" + globalExpert.total + "</td>");
+            if(globalExpert.scale == 0) {
+                firstSpan.append("<td></td>");
+            } else if(globalExpert.scale > 0) {
+                firstSpan.append("<td style=color:green>+"  + globalExpert.scale + "</td>");
+            } else if(globalExpert.scale < 0) {
+                firstSpan.append("<td style=color:red>" + globalExpert.scale + "</td>");
+            }
             firstSpan.append("</tr>");
+
+            sb.append("</tr>");
             sb.append(firstSpan);
             order++;
         }
@@ -461,7 +510,7 @@ public class BasicCommand {
 
     public String seasons(Connection connection, long chatId, String text, String username, Chat chat) {
         List<SeasonDto> list = SeasonDataUtils.findAllByChatId(connection, chatId);
-        if(list.isEmpty()) {
+        if (list.isEmpty()) {
             return Messages.NO_SEASONS_FOR_CHAT;
         }
         return SeasonDto.fromSeasonListToString(list);

@@ -65,6 +65,7 @@ public class ForecastDataUtils {
     public static List<ForecastDto> getForecastsByMatchAndLeague(Connection connection, int matchId, Long leagueId) {
 
         List<ForecastDto> list = new ArrayList<>();
+        log.info("match id {}, leagueId {}", matchId, leagueId);
         String query = "select * from fx_forecasts where league_ = ? and match_id_ = ?";
 
         try (PreparedStatement ps = connection.prepareStatement(query)) {
@@ -79,6 +80,26 @@ public class ForecastDataUtils {
             log.error("error", e);
         }
         return list;
+    }
+
+    public static ForecastDto findByParams(Connection connection, int matchId, Long leagueId, String user) {
+
+        log.info("findByParams {}, {}, {}", matchId, leagueId, user);
+
+        String query = "select * from fx_forecasts where league_ = ? and match_id_ = ? and user_ = ?";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setLong(1, leagueId);
+            ps.setInt(2, matchId);
+            ps.setString(3, user);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    return new ForecastDto(rs);
+                }
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+        }
+        return null;
     }
 
 }
