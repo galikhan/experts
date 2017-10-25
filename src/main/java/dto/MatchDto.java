@@ -43,10 +43,14 @@ public class MatchDto extends BaseDto {
         }
         StringBuilder sb = new StringBuilder();
         int counter = 1;
+        sb.append(" Список матчей:");
+        sb.append("\n");
         for (MatchDto m : list) {
             sb.append(counter + ". " + m.home + " - " + m.guests + " result (" + m.homePoint + "-" + m.guestsPoint + ") \n");
             counter++;
         }
+        sb.append("Отправте свой прогнозы через пробел. Пример: 0-1 3-1 4-4 т.д");
+        sb.append("\n");
         return sb.toString();
     }
 

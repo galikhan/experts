@@ -16,4 +16,4 @@ table_all - Общая таблица
 
 
 --Forecast bot
-leaguesfrom - Показать лиги от пользователя .
+leaguesfrom - /leaguesfrom <username> Показать лиги от пользователя .
