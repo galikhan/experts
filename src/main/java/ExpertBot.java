@@ -17,9 +17,9 @@ import java.util.StringTokenizer;
 /**
  * Created by gali on 9/10/17.
  */
-public class BotService extends TelegramLongPollingBot {
+public class ExpertBot extends TelegramLongPollingBot {
 
-    private final Logger log = LoggerFactory.getLogger(BotService.class);
+    private final Logger log = LoggerFactory.getLogger(ExpertBot.class);
 
 
     @Override
@@ -48,7 +48,7 @@ public class BotService extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
 
-            String result;
+            String result = "";
             String filePath;
 
             if (text.startsWith(Messages.TABLE)) {
@@ -56,11 +56,11 @@ public class BotService extends TelegramLongPollingBot {
                 filePath = basicCommand.table(connection, chatId, text, username);
                 sendPhoto(chatId, filePath);
 
-            } else if (text.startsWith(Messages.TABLE_ALL)) {
+            } /*else if (text.startsWith(Messages.TABLE_ALL)) {
 
                 result = basicCommand.tableAll(connection, chatId, text, username);
 
-            } else if (text.startsWith(Messages.RESULT)) {
+            } */else if (text.startsWith(Messages.RESULT)) {
 
                 result = basicCommand.result(connection, chatId, text, username);
 
@@ -84,11 +84,7 @@ public class BotService extends TelegramLongPollingBot {
 
                     result = basicCommand.leagues(connection, chatId, text, username);
 
-                } else if (text.startsWith(Messages.LEAGUE_FROM)) {
-
-                    result = basicCommand.leaguesFrom(connection, chatId, text, username);
-
-                } else if (text.startsWith(Messages.ADD_MATCHES)) {
+                }  else if (text.startsWith(Messages.ADD_MATCHES)) {
 
                     result = basicCommand.addMatches(connection, chatId, text, username);
 
@@ -96,7 +92,7 @@ public class BotService extends TelegramLongPollingBot {
 
                     result = basicCommand.leagueMatches(connection, chatId, text, username, null);
 
-                } else {
+                } /*else {
 
                     if (text.startsWith("/")) {
                         String command = text.substring(1);
@@ -104,7 +100,7 @@ public class BotService extends TelegramLongPollingBot {
                     } else {
                         result = conversation.digestSimpleText(connection, chatId, text, username);
                     }
-                }
+                }*/
 
                 sendMessage(chatId, result);
             }

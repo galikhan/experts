@@ -3,7 +3,6 @@ package data.utils;
 import dto.LeagueDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.Messages;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,7 +21,7 @@ public class LeagueDataUtils {
         try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where id_ = ?")) {
             ps.setLong(1, leagueId);
             ResultSet rs = ps.executeQuery();
-            while(rs.next()) {
+            while (rs.next()) {
                 return new LeagueDto(rs);
             }
         } catch (Exception e) {
@@ -36,7 +35,7 @@ public class LeagueDataUtils {
             ps.setString(1, name);
             ps.setLong(2, chatId);
             ResultSet rs = ps.executeQuery();
-            while(rs.next()) {
+            while (rs.next()) {
                 return new LeagueDto(rs);
             }
         } catch (Exception e) {
@@ -93,7 +92,7 @@ public class LeagueDataUtils {
         try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where chat_id_ = ? order by id_ desc limit 1")) {
             ps.setLong(1, chatId);
             ResultSet rs = ps.executeQuery();
-            while(rs.next()) {
+            while (rs.next()) {
                 return new LeagueDto(rs);
             }
         } catch (Exception e) {
@@ -106,7 +105,7 @@ public class LeagueDataUtils {
         try (PreparedStatement ps = connection.prepareStatement("select * from fx_leagues where chat_id_ = ? and active_ = false order by id_ desc limit 1")) {
             ps.setLong(1, chatId);
             ResultSet rs = ps.executeQuery();
-            while(rs.next()) {
+            while (rs.next()) {
                 return new LeagueDto(rs);
             }
         } catch (Exception e) {
@@ -130,7 +129,11 @@ public class LeagueDataUtils {
             ps.setLong(3, leagueDto.chatId);
             ps.setString(4, leagueDto.desc);
             ps.setBoolean(5, leagueDto.groupChat);
-            ps.setLong(6, leagueDto.season);
+            if (leagueDto.season != null) {
+                ps.setLong(6, leagueDto.season);
+            } else {
+                ps.setLong(6, 0L);
+            }
             return ps.executeUpdate();
         } catch (Exception e) {
             log.error("error", e);

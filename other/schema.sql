@@ -1,6 +1,6 @@
 --CREATE SEQUENCE fx_sequence;
 
-drop table fx_leagues;
+--drop table fx_leagues;
 create table fx_leagues (
   id_ BIGINT PRIMARY KEY,
   name_ VARCHAR(255),
@@ -12,12 +12,10 @@ create table fx_leagues (
   active_ BOOLEAN,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 ALTER TABLE fx_leagues ADD CONSTRAINT uq_name__chat_id_ UNIQUE (name_, chat_id_);
-ALTER TABLE fx_leagues ADD COLUMN season_ BIGINT;
-ALTER TABLE fx_leagues ADD COLUMN active_ BOOLEAN;
 
-drop table fx_users;
+--drop table fx_users;
 create table fx_users (
   name_ VARCHAR(255) PRIMARY KEY ,
   firstname VARCHAR(255),
@@ -25,7 +23,7 @@ create table fx_users (
 );
 
 
-drop table fx_forecasts;
+--drop table fx_forecasts;
 create table fx_forecasts (
   id_ INTEGER PRIMARY KEY,
   user_ VARCHAR(255),
@@ -35,10 +33,10 @@ create table fx_forecasts (
   guests_point_ INTEGER,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 
 
-drop table fx_matches;
+--drop table fx_matches;
 create table fx_matches (
   id_  BIGINT PRIMARY KEY,
   league_ BIGINT,
@@ -50,10 +48,10 @@ create table fx_matches (
   finished_ boolean,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 --alter table fx_matches add constraint fk_matches_leagues foreign key (league_) references fx_leagues(id_);
 
-drop table fx_experts;
+--drop table fx_experts;
 create table fx_experts (
   id_  BIGINT PRIMARY KEY,
   league_ BIGINT,
@@ -65,16 +63,13 @@ create table fx_experts (
   order_ integer,
   scale_ integer,
   version_ integer,
-  type_ VARCHAR(255)
+  type_ VARCHAR(255),
   create_date_ timestamp,
   modify_date_ timestamp
-)
-
-alter table fx_experts add column version_ integer;
-alter table fx_experts add column type_ varchar(255);
+);
 
 
-drop table fx_request_log;
+--drop table fx_request_log;
 create table fx_request_log (
   id_  BIGINT PRIMARY KEY,
   chat_id_  BIGINT,
@@ -82,10 +77,10 @@ create table fx_request_log (
   request_ VARCHAR(255),
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 
 
-drop table fx_conversation;
+--drop table fx_conversation;
 create table fx_conversation (
   id_  BIGINT PRIMARY KEY,
   chat_id_ BIGINT,
@@ -99,11 +94,11 @@ create table fx_conversation (
   league_ BIGINT,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 
 
 
-drop table fx_files;
+--drop table fx_files;
 create table fx_files (
   id_  BIGINT PRIMARY KEY,
   chat_id_  BIGINT,
@@ -115,10 +110,10 @@ create table fx_files (
   active_ BOOLEAN,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 
 
-drop table fx_seasons;
+--drop table fx_seasons;
 create table fx_seasons (
   id_  BIGINT PRIMARY KEY,
   chat_id_  BIGINT,
@@ -127,5 +122,5 @@ create table fx_seasons (
   active_ BOOLEAN,
   create_date_ timestamp,
   modify_date_ timestamp
-)
+);
 ALTER TABLE fx_seasons ADD CONSTRAINT uq_name__chat_id__creator UNIQUE (name_, chat_id_, creator_);

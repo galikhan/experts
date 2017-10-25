@@ -28,7 +28,7 @@ public class Messages {
     public static String ADD_MATCHES = "/add_matches";
     public static String RESULT = "/result";
     public static String EXPERTS_TOP = "/experts_top";
-    public static String LEAGUE_FROM = "/leaguefrom";
+    public static String LEAGUES_FROM = "/leaguesfrom";
     public static String TABLE = "/table";
     public static String TABLE_ALL = "/table_all";
     public static String NEW_SEASON = "/new_season";

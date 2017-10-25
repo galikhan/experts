@@ -1,3 +1,5 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import data.utils.ExpertDataUtils;
 import data.utils.FileDataUtils;
@@ -18,8 +20,11 @@ import utils.ExpertUtils;
 import utils.Messages;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,7 +56,9 @@ public class BasicCommand {
             leagueDto.groupChat = groupChat;
             leagueDto.chatId = chatId;
             leagueDto.name = name;
-            leagueDto.season = seasonDto.id;
+            if(seasonDto != null) {
+                leagueDto.season = seasonDto.id;
+            }
             int result = LeagueDataUtils.save(connection, leagueDto);
             if (result > 0) {
                 return Messages.SUCCESS;
@@ -372,7 +379,7 @@ public class BasicCommand {
         sbHead.append("<th>#</th>");
         sbHead.append("<th>experts</th>");
         for (MatchDto match : matches) {
-            if(match.finished) {
+            if (match.finished) {
                 sbHead.append("<th>" + match.home + " (" + match.homePoint + "-" + match.guestsPoint + ")<br>" + match.guests + "</th>");
             }
         }
@@ -414,7 +421,7 @@ public class BasicCommand {
 
             for (MatchDto match : matches) {
 
-                if(match.finished) {
+                if (match.finished) {
                     ForecastDto forecast = map.get(match.matchId);
                     sb.append("<td>" + forecast.homePoint + " - " + forecast.guestsPoint + "</td>");
 
@@ -432,11 +439,11 @@ public class BasicCommand {
             }
             firstSpan.append("<td>" + total + "</td>");
             firstSpan.append("<td>" + globalExpert.total + "</td>");
-            if(globalExpert.scale == 0) {
+            if (globalExpert.scale == 0) {
                 firstSpan.append("<td></td>");
-            } else if(globalExpert.scale > 0) {
-                firstSpan.append("<td style=color:green>+"  + globalExpert.scale + "</td>");
-            } else if(globalExpert.scale < 0) {
+            } else if (globalExpert.scale > 0) {
+                firstSpan.append("<td style=color:green>+" + globalExpert.scale + "</td>");
+            } else if (globalExpert.scale < 0) {
                 firstSpan.append("<td style=color:red>" + globalExpert.scale + "</td>");
             }
             firstSpan.append("</tr>");
@@ -448,6 +455,23 @@ public class BasicCommand {
         sb.append("</tbody>");
         sb.append("</html>");
 
+        String configPath = System.getProperty("config");
+        if (configPath == null) {
+            configPath = "/Users/gali/IdeaProjects/FootBallExpertBot/src/main/resources/config.json";
+        }
+
+        Gson gson = new GsonBuilder().create();
+        JsonObject jsonObject = null;
+        try {
+
+            Reader read = new FileReader(configPath);
+            jsonObject = gson.fromJson(read, JsonObject.class);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+
         FileDataUtils.inActivatePrevFiles(connection, chatId, leagueDto.id, Messages.FILE_TABLE);
 
         FileDto fileDto = new FileDto();
@@ -456,7 +480,8 @@ public class BasicCommand {
         fileDto.leagueId = leagueDto.id;
         fileDto.name = FileDataUtils.formatName(chatId, leagueDto.id, matchId, "png");
         fileDto.htmlName = FileDataUtils.formatName(chatId, leagueDto.id, matchId, "html");
-        fileDto.path = "/Users/gali/IdeaProjects/FootBallExpertBot/files/";
+        fileDto.path = jsonObject.get("filePath").getAsString();;
+
 
         int save = FileDataUtils.save(connection, fileDto);
         if (save > 0) {
@@ -472,7 +497,8 @@ public class BasicCommand {
 
 
             try {
-                Process proc = Runtime.getRuntime().exec("java -jar /Users/gali/Documents/webvector/webvector-3.4.jar file://" + fileDto.path + fileDto.htmlName + " " + fileDto.path + fileDto.name + " png");
+                log.info("java -jar {} file://{} {} png", jsonObject.get("webVector").getAsString()  , fileDto.path + fileDto.htmlName, fileDto.path + fileDto.name);
+                Process proc = Runtime.getRuntime().exec("java -jar " + jsonObject.get("webVector").getAsString() + " file://" + fileDto.path + fileDto.htmlName + " " + fileDto.path + fileDto.name + " png");
             } catch (IOException e) {
                 e.printStackTrace();
             }
